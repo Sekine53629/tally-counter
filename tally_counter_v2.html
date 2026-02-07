@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>保健所控え 集計カウンター v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3344;
+    --text: #e8eaed;
+    --text2: #8b8fa3;
+    --accent: #6c9fff;
+    --accent2: #4a7ade;
+    --green: #4ade80;
+    --red: #f87171;
+    --orange: #fb923c;
+    --purple: #a78bfa;
+    --pink: #f472b6;
+    --cyan: #22d3ee;
+    --yellow: #facc15;
+    --teal: #2dd4bf;
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  }
+
+  /* Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 12px 8px;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .header h1 { font-size: 14px; font-weight: 700; }
+
+  .header-actions { display: flex; gap: 6px; }
+
+  .btn-sm {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .btn-sm.primary { background: var(--accent2); color: #fff; border-color: var(--accent); }
+
+  /* Month scroll */
+  .month-scroll {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 2px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .month-scroll::-webkit-scrollbar { display: none; }
+
+  .month-chip {
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 8px;
+    border-radius: 7px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text2);
+    cursor: pointer;
+    touch-action: manipulation;
+    position: relative;
+    transition: all 0.15s;
+  }
+  .month-chip.active { background: var(--accent2); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .month-chip .badge {
+    position: absolute; top: -4px; right: -4px;
+    background: var(--orange); color: #000;
+    font-size: 8px; font-weight: 700;
+    min-width: 14px; height: 14px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; padding: 0 2px;
+  }
+
+  /* Destination tabs */
+  .dest-tabs {
+    display: flex;
+    gap: 0;
+    margin: 0 12px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dest-tabs::-webkit-scrollbar { display: none; }
+
+  .dest-tab {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 8px 4px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    touch-action: manipulation;
+    text-align: center;
+    white-space: nowrap;
+    position: relative;
+    transition: all 0.15s;
+  }
+  .dest-tab.active { background: var(--surface2); color: var(--text); }
+
+  .dest-tab .dest-count {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .dest-tab[data-dest="hokenjo"]      .dest-count { color: var(--green); }
+  .dest-tab[data-dest="kouseikyoku"]   .dest-count { color: var(--cyan); }
+  .dest-tab[data-dest="shinkokyoku"]   .dest-count { color: var(--purple); }
+  .dest-tab[data-dest="jiritsu_hoken"] .dest-count { color: var(--pink); }
+  .dest-tab[data-dest="roudoukyoku"]   .dest-count { color: var(--orange); }
+  .dest-tab[data-dest="all"]           .dest-count { color: var(--accent); }
+
+  /* Content */
+  .content { padding: 12px; }
+
+  .month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .month-title { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .month-total { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text2); }
+  .month-total span { color: var(--accent); font-weight: 700; font-size: 16px; }
+
+  .dest-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+
+  /* Tally rows */
+  .tally-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    margin-bottom: 6px;
+    background: var(--surface);
+    border-radius: 10px;
+    border-left: 3px solid var(--border);
+  }
+
+  .tally-label { flex: 1; font-size: 13px; font-weight: 600; }
+  .tally-sublabel { font-size: 10px; color: var(--text2); font-weight: 400; }
+
+  .tally-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    min-width: 40px;
+    text-align: center;
+  }
+
+  .tally-btn {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    border: none;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+  .tally-btn:active { transform: scale(0.9); }
+  .tally-btn.minus { background: var(--surface2); color: var(--text2); }
+  .tally-btn.plus { background: var(--accent2); color: #fff; }
+
+  .tally-row[data-cat="new"]       { border-left-color: var(--green); }
+  .tally-row[data-cat="out"]       { border-left-color: var(--red); }
+  .tally-row[data-cat="in"]        { border-left-color: var(--cyan); }
+  .tally-row[data-cat="quit"]      { border-left-color: var(--orange); }
+  .tally-row[data-cat="leave"]     { border-left-color: var(--purple); }
+  .tally-row[data-cat="return"]    { border-left-color: var(--pink); }
+  .tally-row[data-cat="other_out"] { border-left-color: var(--yellow); }
+  .tally-row[data-cat="other_in"]  { border-left-color: var(--yellow); }
+
+  .tally-row[data-cat="new"]       .tally-count { color: var(--green); }
+  .tally-row[data-cat="out"]       .tally-count { color: var(--red); }
+  .tally-row[data-cat="in"]        .tally-count { color: var(--cyan); }
+  .tally-row[data-cat="quit"]      .tally-count { color: var(--orange); }
+  .tally-row[data-cat="leave"]     .tally-count { color: var(--purple); }
+  .tally-row[data-cat="return"]    .tally-count { color: var(--pink); }
+  .tally-row[data-cat="other_out"] .tally-count { color: var(--yellow); }
+  .tally-row[data-cat="other_in"]  .tally-count { color: var(--yellow); }
+
+  /* Notes */
+  .notes-input {
+    width: 100%;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    resize: none;
+    outline: none;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+  .notes-input:focus { border-color: var(--accent); }
+  .notes-input::placeholder { color: var(--text2); }
+
+  /* Summary */
+  .summary {
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .summary h2 { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text2); }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .summary-card {
+    text-align: center;
+    padding: 8px 6px;
+    background: var(--surface2);
+    border-radius: 8px;
+  }
+  .summary-card .label { font-size: 9px; color: var(--text2); margin-bottom: 3px; }
+  .summary-card .value { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; }
+
+  .estimate-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .estimate-row:last-child { border-bottom: none; }
+  .estimate-row .est-label { color: var(--text2); }
+  .estimate-row .est-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
+  /* Dest breakdown table */
+  .dest-breakdown { width: 100%; margin-top: 8px; border-collapse: collapse; }
+  .dest-breakdown th, .dest-breakdown td {
+    font-size: 10px;
+    padding: 5px 4px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .dest-breakdown th { color: var(--text2); font-weight: 600; }
+  .dest-breakdown td { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .dest-breakdown .row-label { text-align: left; font-family: 'Noto Sans JP', sans-serif; color: var(--text); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    padding: 20px 14px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal h2 { font-size: 15px; margin-bottom: 12px; }
+  .modal pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    background: var(--bg);
+    padding: 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .modal-actions { display: flex; gap: 6px; }
+  .modal-actions button {
+    flex: 1;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .modal-actions .cancel { background: var(--surface2); color: var(--text2); }
+  .modal-actions .copy { background: var(--accent2); color: #fff; }
+
+  @keyframes flash { 0%{opacity:1} 50%{opacity:0.6} 100%{opacity:1} }
+  .flash { animation: flash 0.15s ease; }
+
+  /* View toggle */
+  .view-toggle {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 2px;
+    margin: 12px 12px 0;
+  }
+  .view-toggle button {
+    flex: 1;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .view-toggle button.active { background: var(--surface2); color: var(--text); }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+const DESTS = [
+  { key: 'hokenjo',      label: '保健所',          short: '保健所' },
+  { key: 'kouseikyoku',  label: '厚生局',          short: '厚生局' },
+  { key: 'shinkokyoku',  label: '自立支援(振興局)', short: '振興局' },
+  { key: 'jiritsu_hoken',label: '自立支援(保健所)', short: '自立保' },
+  { key: 'roudoukyoku',  label: '労働局',          short: '労働局' },
+];
+
+const CATS = [
+  { key: 'new',       label: '新規配属',       sub: '入', cat: 'new' },
+  { key: 'move_out',  label: '異動（出）',     sub: '',   cat: 'out' },
+  { key: 'move_in',   label: '異動（入）',     sub: '',   cat: 'in' },
+  { key: 'quit',      label: '退職（出）',     sub: '',   cat: 'quit' },
+  { key: 'leave',     label: '産休育休（出）',  sub: '',   cat: 'leave' },
+  { key: 'return',    label: '育休復帰（入）',  sub: '',   cat: 'return' },
+  { key: 'other_out', label: 'その他（出）',   sub: '',   cat: 'other_out' },
+  { key: 'other_in',  label: 'その他（入）',   sub: '',   cat: 'other_in' },
+];
+
+// Generate months 2023/04 - 2026/03
+const MONTHS = [];
+for (let y = 2023; y <= 2025; y++) {
+  for (let m = 4; m <= 12; m++) MONTHS.push(`${y}/${String(m).padStart(2,'0')}`);
+  for (let m = 1; m <= 3; m++) MONTHS.push(`${y+1}/${String(m).padStart(2,'0')}`);
+}
+const uniqueMonths = [...new Set(MONTHS)];
+
+// State
+let data = {};       // data[month][dest][cat] = count
+let notes = {};      // notes[month] = string
+let selMonth = '2023/04';
+let selDest = 'hokenjo';
+let viewMode = 'input'; // 'input' | 'summary'
+let showExport = false;
+
+function init(m) {
+  if (!data[m]) {
+    data[m] = {};
+    DESTS.forEach(d => {
+      data[m][d.key] = {};
+      CATS.forEach(c => data[m][d.key][c.key] = 0);
+    });
+  }
+  if (notes[m] === undefined) notes[m] = '';
+}
+uniqueMonths.forEach(init);
+
+function monthDestTotal(m, d) {
+  return CATS.reduce((a, c) => a + (data[m][d][c.key] || 0), 0);
+}
+
+function monthTotal(m) {
+  return DESTS.reduce((a, d) => a + monthDestTotal(m, d.key), 0);
+}
+
+function allTotal() {
+  return uniqueMonths.reduce((a, m) => a + monthTotal(m), 0);
+}
+
+function monthCatTotal(m, catKey) {
+  return DESTS.reduce((a, d) => a + (data[m][d.key][catKey] || 0), 0);
+}
+
+function vibrate() { if (navigator.vibrate) navigator.vibrate(10); }
+
+function render() {
+  const app = document.getElementById('app');
+  const mTotal = monthTotal(selMonth);
+  const aTotal = allTotal();
+  const filled = uniqueMonths.filter(m => monthTotal(m) > 0).length;
+
+  let html = `
+    <div class="header">
+      <div class="header-top">
+        <h1>📋 控え集計カウンター</h1>
+        <div class="header-actions">
+          <button class="btn-sm" onclick="resetMonth()">リセット</button>
+          <button class="btn-sm primary" onclick="showExport=true;render()">CSV出力</button>
+        </div>
+      </div>
+      <div class="month-scroll" id="monthScroll">
+        ${uniqueMonths.map(m => {
+          const t = monthTotal(m);
+          const [y, mo] = m.split('/');
+          return `<div class="month-chip ${m===selMonth?'active':''}" onclick="selMonth='${m}';render();scrollMonth()">
+            ${y.slice(2)}/${mo}
+            ${t > 0 ? `<div class="badge">${t}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="view-toggle">
+      <button class="${viewMode==='input'?'active':''}" onclick="viewMode='input';render()">入力</button>
+      <button class="${viewMode==='summary'?'active':''}" onclick="viewMode='summary';render()">当月サマリー</button>
+    </div>
+
+    <div class="dest-tabs">
+      ${DESTS.map(d => {
+        const dt = monthDestTotal(selMonth, d.key);
+        return `<button class="dest-tab ${d.key===selDest?'active':''}" data-dest="${d.key}"
+                  onclick="selDest='${d.key}';render()">
+          ${d.short}
+          <span class="dest-count">${dt}</span>
+        </button>`;
+      }).join('')}
+    </div>
+  `;
+
+  if (viewMode === 'input') {
+    html += `<div class="content">
+      <div class="month-header">
+        <div class="month-title">${selMonth}</div>
+        <div class="month-total">書類計: <span>${mTotal}</span></div>
+      </div>
+
+      <div class="dest-label">▶ ${DESTS.find(d=>d.key===selDest).label}</div>
+
+      ${CATS.map(c => {
+        const val = data[selMonth][selDest][c.key];
+        return `<div class="tally-row" data-cat="${c.cat}" id="row-${c.key}">
+          <div class="tally-label">${c.label}</div>
+          <button class="tally-btn minus" onclick="dec('${c.key}')">−</button>
+          <div class="tally-count">${val}</div>
+          <button class="tally-btn plus" onclick="inc('${c.key}')">＋</button>
+        </div>`;
+      }).join('')}
+
+      <textarea class="notes-input" rows="2" placeholder="備考"
+        oninput="notes[selMonth]=this.value">${notes[selMonth]||''}</textarea>
+
+      <div class="summary">
+        <h2>📊 当月 推定工数（イベントベース）</h2>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="label">保守的(8h)</div>
+            <div class="value" style="color:var(--green)">${getEventCount(selMonth) * 8}h</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">中間(10h)</div>
+            <div class="value" style="color:var(--accent)">${getEventCount(selMonth) * 10}h</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">積極的(12h)</div>
+            <div class="value" style="color:var(--orange)">${getEventCount(selMonth) * 12}h</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary" style="margin-top:10px">
+        <h2>📈 全期間</h2>
+        <div class="estimate-row">
+          <span class="est-label">入力済み月数</span>
+          <span class="est-value">${filled} / ${uniqueMonths.length}</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">総書類数</span>
+          <span class="est-value">${aTotal}件</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">総イベント数</span>
+          <span class="est-value">${getTotalEvents()}T</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">月平均残業（中間）</span>
+          <span class="est-value" style="color:var(--accent)">${filled>0?((getTotalEvents()/filled)*10).toFixed(0):'0'}h</span>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    // Summary view
+    html += `<div class="content">
+      <div class="month-header">
+        <div class="month-title">${selMonth}</div>
+        <div class="month-total">書類計: <span>${mTotal}</span></div>
+      </div>
+
+      <div class="summary">
+        <h2>提出先 × 種別 マトリクス</h2>
+        <div style="overflow-x:auto">
+          <table class="dest-breakdown">
+            <thead>
+              <tr>
+                <th></th>
+                ${DESTS.map(d => `<th>${d.short}</th>`).join('')}
+                <th>計</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${CATS.map(c => {
+                const rowTotal = monthCatTotal(selMonth, c.key);
+                return `<tr>
+                  <td class="row-label">${c.label}</td>
+                  ${DESTS.map(d => {
+                    const v = data[selMonth][d.key][c.key];
+                    return `<td style="${v>0?'color:var(--accent)':''}">${v||'-'}</td>`;
+                  }).join('')}
+                  <td style="font-weight:700;color:var(--accent)">${rowTotal||'-'}</td>
+                </tr>`;
+              }).join('')}
+              <tr style="border-top:2px solid var(--border)">
+                <td class="row-label" style="font-weight:700">計</td>
+                ${DESTS.map(d => {
+                  const v = monthDestTotal(selMonth, d.key);
+                  return `<td style="font-weight:700">${v||'-'}</td>`;
+                }).join('')}
+                <td style="font-weight:700;color:var(--orange)">${mTotal}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="summary" style="margin-top:10px">
+        <h2>📊 推定工数</h2>
+        <div class="estimate-row">
+          <span class="est-label">書類数（実カウント）</span>
+          <span class="est-value">${mTotal}件</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">イベント数（保健所T基準）</span>
+          <span class="est-value">${getEventCount(selMonth)}T</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">推定残業（保守的 8h）</span>
+          <span class="est-value" style="color:var(--green)">${getEventCount(selMonth)*8}h</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">推定残業（中間 10h）</span>
+          <span class="est-value" style="color:var(--accent)">${getEventCount(selMonth)*10}h</span>
+        </div>
+        <div class="estimate-row">
+          <span class="est-label">推定残業（積極的 12h）</span>
+          <span class="est-value" style="color:var(--orange)">${getEventCount(selMonth)*12}h</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if (showExport) {
+    const csv = generateCSV();
+    html += `
+      <div class="modal-overlay" onclick="if(event.target===this){showExport=false;render()}">
+        <div class="modal">
+          <h2>CSV出力</h2>
+          <div style="margin-bottom:8px">
+            <button class="btn-sm ${exportMode==='docs'?'primary':''}" onclick="exportMode='docs';render()" style="margin-right:4px">書類ベース</button>
+            <button class="btn-sm ${exportMode==='events'?'primary':''}" onclick="exportMode='events';render()">イベントベース</button>
+          </div>
+          <pre id="csvPre">${esc(exportMode==='docs'?generateCSV():generateEventCSV())}</pre>
+          <div class="modal-actions">
+            <button class="cancel" onclick="showExport=false;render()">閉じる</button>
+            <button class="copy" onclick="copyCSV()">コピー</button>
+            <button class="copy" onclick="dlCSV()" style="background:var(--green);color:#000">DL</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  app.innerHTML = html;
+  requestAnimationFrame(scrollMonth);
+}
+
+function scrollMonth() {
+  const el = document.querySelector('.month-chip.active');
+  if (el) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+
+function inc(catKey) {
+  data[selMonth][selDest][catKey]++;
+  vibrate();
+  render();
+  const row = document.getElementById('row-' + catKey);
+  if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+}
+
+function dec(catKey) {
+  if (data[selMonth][selDest][catKey] > 0) {
+    data[selMonth][selDest][catKey]--;
+    vibrate();
+    render();
+  }
+}
+
+function resetMonth() {
+  if (confirm(`${selMonth} の全データをリセットしますか？`)) {
+    DESTS.forEach(d => CATS.forEach(c => data[selMonth][d.key][c.key] = 0));
+    notes[selMonth] = '';
+    render();
+  }
+}
+
+// Event count = transactions based on hokenjo (primary filing destination)
+function getEventCount(m) {
+  return monthDestTotal(m, 'hokenjo');
+}
+
+function getTotalEvents() {
+  return uniqueMonths.reduce((a, m) => a + getEventCount(m), 0);
+}
+
+let exportMode = 'docs';
+
+function generateCSV() {
+  const destKeys = DESTS.map(d => d.key);
+  const catKeys = CATS.map(c => c.key);
+
+  // Header: month, then for each dest, each cat, then dest subtotal, then grand total
+  let header = '年月';
+  DESTS.forEach(d => {
+    CATS.forEach(c => header += `,${d.label}_${c.label}`);
+    header += `,${d.label}_計`;
+  });
+  header += ',総書類数,備考';
+
+  const rows = uniqueMonths.map(m => {
+    let row = m;
+    let grand = 0;
+    DESTS.forEach(d => {
+      let sub = 0;
+      CATS.forEach(c => {
+        const v = data[m][d.key][c.key];
+        row += `,${v}`;
+        sub += v;
+      });
+      row += `,${sub}`;
+      grand += sub;
+    });
+    const n = (notes[m]||'').replace(/,/g,'，').replace(/\n/g,' ');
+    row += `,${grand},${n}`;
+    return row;
+  });
+
+  return header + '\n' + rows.join('\n');
+}
+
+function generateEventCSV() {
+  let header = '年月';
+  CATS.forEach(c => header += `,${c.label}`);
+  header += ',イベント計,推定工数8h,推定工数10h,推定工数12h,書類総数,備考';
+
+  const rows = uniqueMonths.map(m => {
+    let row = m;
+    CATS.forEach(c => row += `,${monthCatTotal(m, c.key)}`);
+    const ev = getEventCount(m);
+    const docs = monthTotal(m);
+    const n = (notes[m]||'').replace(/,/g,'，').replace(/\n/g,' ');
+    row += `,${ev},${ev*8},${ev*10},${ev*12},${docs},${n}`;
+    return row;
+  });
+
+  // Totals
+  const filled = uniqueMonths.filter(m => monthTotal(m) > 0).length;
+  let totalRow = '総合計';
+  CATS.forEach(c => totalRow += `,${uniqueMonths.reduce((a,m)=>a+monthCatTotal(m,c.key),0)}`);
+  const te = getTotalEvents();
+  totalRow += `,${te},${te*8},${te*10},${te*12},${allTotal()},`;
+  rows.push(totalRow);
+
+  if (filled > 0) {
+    let avgRow = '月平均';
+    CATS.forEach(c => avgRow += `,${(uniqueMonths.reduce((a,m)=>a+monthCatTotal(m,c.key),0)/filled).toFixed(1)}`);
+    const ae = (te/filled);
+    avgRow += `,${ae.toFixed(1)},${(ae*8).toFixed(0)},${(ae*10).toFixed(0)},${(ae*12).toFixed(0)},${(allTotal()/filled).toFixed(1)},`;
+    rows.push(avgRow);
+  }
+
+  return header + '\n' + rows.join('\n');
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function copyCSV() {
+  const csv = exportMode==='docs' ? generateCSV() : generateEventCSV();
+  navigator.clipboard.writeText(csv).then(() => {
+    const btn = document.querySelector('.modal-actions .copy');
+    if (btn) { btn.textContent='✓ コピー済み'; setTimeout(()=>{btn.textContent='コピー'},1500); }
+  });
+}
+
+function dlCSV() {
+  const csv = exportMode==='docs' ? generateCSV() : generateEventCSV();
+  const name = exportMode==='docs' ? 'transaction_docs.csv' : 'transaction_events.csv';
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+
+render();
+</script>
+</body>
+</html>
