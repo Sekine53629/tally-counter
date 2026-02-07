@@ -3,821 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>保健所控え 集計カウンター v2</title>
+<title>証拠物カウンター v3</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
-
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #242836;
-    --border: #2e3344;
-    --text: #e8eaed;
-    --text2: #8b8fa3;
-    --accent: #6c9fff;
-    --accent2: #4a7ade;
-    --green: #4ade80;
-    --red: #f87171;
-    --orange: #fb923c;
-    --purple: #a78bfa;
-    --pink: #f472b6;
-    --cyan: #22d3ee;
-    --yellow: #facc15;
-    --teal: #2dd4bf;
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0f1117;--surface:#1a1d27;--surface2:#232733;--border:#2e3345;
+    --text:#e8eaed;--text2:#8b90a0;--accent:#3b82f6;--accent2:#2563eb;
+    --green:#10b981;--orange:#f59e0b;--red:#ef4444;--purple:#8b5cf6;--cyan:#06b6d4;--pink:#ec4899;
   }
-
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
-  }
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
   /* Header */
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    padding: 10px 12px 8px;
+  .header{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+  .header h1{font-size:15px;font-weight:700;flex:1}
+  .header .total{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--accent)}
+  .header .sub{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+
+  /* Month selector */
+  .month-bar{display:flex;overflow-x:auto;gap:4px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);scrollbar-width:none;-ms-overflow-style:none}
+  .month-bar::-webkit-scrollbar{display:none}
+  .mo-btn{
+    flex-shrink:0;padding:6px 12px;border-radius:6px;border:1px solid var(--border);
+    background:var(--surface2);color:var(--text2);font-size:11px;font-family:'JetBrains Mono',monospace;
+    font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;position:relative;
+  }
+  .mo-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .mo-btn .cnt{
+    position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;
+    font-size:9px;min-width:16px;height:16px;border-radius:8px;display:flex;
+    align-items:center;justify-content:center;padding:0 4px;
+  }
+  .mo-btn .cnt.zero{display:none}
+
+  /* FY separator */
+  .fy-sep{flex-shrink:0;display:flex;align-items:center;padding:0 4px;font-size:9px;color:var(--text2);font-weight:700}
+
+  /* Tab bar */
+  .tabs{display:flex;gap:2px;padding:8px 12px;background:var(--bg)}
+  .tab{
+    flex:1;padding:8px;border-radius:7px;text-align:center;font-size:12px;font-weight:600;
+    cursor:pointer;color:var(--text2);background:var(--surface);border:1px solid var(--border);
+    transition:all 0.15s;
+  }
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* === INPUT MODE === */
+  .input-area{padding:12px}
+  .section-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding:0 2px}
+  .dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+  .dest-btn{
+    padding:14px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface);
+    text-align:center;cursor:pointer;transition:all 0.15s;
+  }
+  .dest-btn .name{font-size:13px;font-weight:600}
+  .dest-btn.selected{border-color:var(--accent);background:rgba(59,130,246,0.1)}
+  .dest-btn.selected .name{color:var(--accent)}
+
+  .flag-row{display:flex;gap:8px;margin-bottom:14px}
+  .flag-btn{
+    flex:1;padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--surface);
+    text-align:center;cursor:pointer;transition:all 0.15s;
+  }
+  .flag-btn .icon{font-size:20px}
+  .flag-btn .label{font-size:11px;font-weight:600;margin-top:4px}
+  .flag-btn.on{border-color:var(--orange);background:rgba(245,158,11,0.1)}
+  .flag-btn.on .label{color:var(--orange)}
+
+  .register-btn{
+    width:100%;padding:16px;border-radius:12px;border:none;font-family:'Noto Sans JP',sans-serif;
+    font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .register-btn.ready{background:var(--accent);color:#fff}
+  .register-btn.ready:active{transform:scale(0.97);background:var(--accent2)}
+  .register-btn.disabled{background:var(--surface2);color:var(--text2);cursor:not-allowed}
+
+  .toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;
+    opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100;
+    background:var(--green);color:#fff;
+  }
+  .toast.show{opacity:1}
+  .toast.undo{background:var(--orange)}
+
+  .recent{margin-top:14px}
+  .recent-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .recent-title span{font-size:11px;color:var(--text2);font-weight:600}
+  .log-item{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface);
+    border:1px solid var(--border);border-radius:8px;margin-bottom:4px;font-size:12px;
+    animation:slideIn 0.2s ease;
+  }
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .log-item .num{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);min-width:28px}
+  .log-item .dest-tag{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+  .log-item .flag-tag{padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700}
+  .log-item .undo-btn{
+    margin-left:auto;padding:3px 8px;border-radius:4px;border:1px solid var(--border);
+    background:var(--surface2);color:var(--text2);font-size:10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;
   }
 
-  .header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
+  /* === SUMMARY === */
+  .summary{padding:12px}
+  .summary-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+  .summary-card h3{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px}
+  .s-cell{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}
+  .s-cell .lbl{font-size:10px;color:var(--text2);font-weight:600}
+  .s-cell .val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;margin-top:4px}
+
+  .matrix{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+  .matrix th,.matrix td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--border)}
+  .matrix th{color:var(--text2);font-weight:600;font-size:10px}
+  .matrix td.lc{text-align:left;font-weight:600}
+  .matrix .hi{color:var(--accent);font-weight:700}
+  .matrix .warn{color:var(--orange);font-weight:700}
+
+  .hours-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .h-cell{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}
+  .h-cell .lbl{font-size:10px;color:var(--text2)}
+  .h-cell .val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:2px}
+
+  .export-bar{display:flex;gap:6px;margin-top:12px}
+  .export-btn{
+    flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);
+    color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;
+    cursor:pointer;text-align:center;
   }
+  .export-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-  .header h1 { font-size: 14px; font-weight: 700; }
-
-  .header-actions { display: flex; gap: 6px; }
-
-  .btn-sm {
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 10px;
-    border-radius: 7px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text2);
-    cursor: pointer;
-    touch-action: manipulation;
+  .danger-zone{margin-top:20px;padding:14px;border:1px solid var(--red);border-radius:10px;background:rgba(239,68,68,0.05)}
+  .danger-zone h3{font-size:12px;color:var(--red);margin-bottom:8px}
+  .danger-btn{
+    padding:8px 16px;border-radius:6px;border:1px solid var(--red);background:transparent;
+    color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;
   }
-  .btn-sm.primary { background: var(--accent2); color: #fff; border-color: var(--accent); }
-
-  /* Month scroll */
-  .month-scroll {
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding: 2px 0;
-    -webkit-overflow-scrolling: touch;
-  }
-  .month-scroll::-webkit-scrollbar { display: none; }
-
-  .month-chip {
-    flex-shrink: 0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 5px 8px;
-    border-radius: 7px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    color: var(--text2);
-    cursor: pointer;
-    touch-action: manipulation;
-    position: relative;
-    transition: all 0.15s;
-  }
-  .month-chip.active { background: var(--accent2); border-color: var(--accent); color: #fff; font-weight: 700; }
-  .month-chip .badge {
-    position: absolute; top: -4px; right: -4px;
-    background: var(--orange); color: #000;
-    font-size: 8px; font-weight: 700;
-    min-width: 14px; height: 14px; border-radius: 7px;
-    display: flex; align-items: center; justify-content: center; padding: 0 2px;
-  }
-
-  /* Destination tabs */
-  .dest-tabs {
-    display: flex;
-    gap: 0;
-    margin: 0 12px;
-    background: var(--surface);
-    border-radius: 10px;
-    padding: 3px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .dest-tabs::-webkit-scrollbar { display: none; }
-
-  .dest-tab {
-    flex: 1;
-    min-width: 0;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 8px 4px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--text2);
-    cursor: pointer;
-    touch-action: manipulation;
-    text-align: center;
-    white-space: nowrap;
-    position: relative;
-    transition: all 0.15s;
-  }
-  .dest-tab.active { background: var(--surface2); color: var(--text); }
-
-  .dest-tab .dest-count {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 16px;
-    font-weight: 700;
-    margin-top: 2px;
-  }
-
-  .dest-tab[data-dest="hokenjo"]      .dest-count { color: var(--green); }
-  .dest-tab[data-dest="kouseikyoku"]   .dest-count { color: var(--cyan); }
-  .dest-tab[data-dest="shinkokyoku"]   .dest-count { color: var(--purple); }
-  .dest-tab[data-dest="jiritsu_hoken"] .dest-count { color: var(--pink); }
-  .dest-tab[data-dest="roudoukyoku"]   .dest-count { color: var(--orange); }
-  .dest-tab[data-dest="all"]           .dest-count { color: var(--accent); }
-
-  /* Content */
-  .content { padding: 12px; }
-
-  .month-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 12px;
-  }
-  .month-title { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-  .month-total { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text2); }
-  .month-total span { color: var(--accent); font-weight: 700; font-size: 16px; }
-
-  .dest-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text2);
-    margin-bottom: 10px;
-    padding-left: 4px;
-  }
-
-  /* Tally rows */
-  .tally-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px;
-    margin-bottom: 6px;
-    background: var(--surface);
-    border-radius: 10px;
-    border-left: 3px solid var(--border);
-  }
-
-  .tally-label { flex: 1; font-size: 13px; font-weight: 600; }
-  .tally-sublabel { font-size: 10px; color: var(--text2); font-weight: 400; }
-
-  .tally-count {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 24px;
-    font-weight: 700;
-    min-width: 40px;
-    text-align: center;
-  }
-
-  .tally-btn {
-    width: 44px; height: 44px;
-    border-radius: 10px;
-    border: none;
-    font-size: 20px;
-    font-weight: 700;
-    cursor: pointer;
-    touch-action: manipulation;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s;
-  }
-  .tally-btn:active { transform: scale(0.9); }
-  .tally-btn.minus { background: var(--surface2); color: var(--text2); }
-  .tally-btn.plus { background: var(--accent2); color: #fff; }
-
-  .tally-row[data-cat="new"]       { border-left-color: var(--green); }
-  .tally-row[data-cat="out"]       { border-left-color: var(--red); }
-  .tally-row[data-cat="in"]        { border-left-color: var(--cyan); }
-  .tally-row[data-cat="quit"]      { border-left-color: var(--orange); }
-  .tally-row[data-cat="leave"]     { border-left-color: var(--purple); }
-  .tally-row[data-cat="return"]    { border-left-color: var(--pink); }
-  .tally-row[data-cat="other_out"] { border-left-color: var(--yellow); }
-  .tally-row[data-cat="other_in"]  { border-left-color: var(--yellow); }
-
-  .tally-row[data-cat="new"]       .tally-count { color: var(--green); }
-  .tally-row[data-cat="out"]       .tally-count { color: var(--red); }
-  .tally-row[data-cat="in"]        .tally-count { color: var(--cyan); }
-  .tally-row[data-cat="quit"]      .tally-count { color: var(--orange); }
-  .tally-row[data-cat="leave"]     .tally-count { color: var(--purple); }
-  .tally-row[data-cat="return"]    .tally-count { color: var(--pink); }
-  .tally-row[data-cat="other_out"] .tally-count { color: var(--yellow); }
-  .tally-row[data-cat="other_in"]  .tally-count { color: var(--yellow); }
-
-  /* Notes */
-  .notes-input {
-    width: 100%;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 12px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    resize: none;
-    outline: none;
-    margin-top: 4px;
-    margin-bottom: 8px;
-  }
-  .notes-input:focus { border-color: var(--accent); }
-  .notes-input::placeholder { color: var(--text2); }
-
-  /* Summary */
-  .summary {
-    margin-top: 16px;
-    padding: 14px;
-    background: var(--surface);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-  }
-  .summary h2 { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text2); }
-
-  .summary-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
-  }
-  .summary-card {
-    text-align: center;
-    padding: 8px 6px;
-    background: var(--surface2);
-    border-radius: 8px;
-  }
-  .summary-card .label { font-size: 9px; color: var(--text2); margin-bottom: 3px; }
-  .summary-card .value { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; }
-
-  .estimate-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-  }
-  .estimate-row:last-child { border-bottom: none; }
-  .estimate-row .est-label { color: var(--text2); }
-  .estimate-row .est-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
-
-  /* Dest breakdown table */
-  .dest-breakdown { width: 100%; margin-top: 8px; border-collapse: collapse; }
-  .dest-breakdown th, .dest-breakdown td {
-    font-size: 10px;
-    padding: 5px 4px;
-    text-align: center;
-    border-bottom: 1px solid var(--border);
-  }
-  .dest-breakdown th { color: var(--text2); font-weight: 600; }
-  .dest-breakdown td { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
-  .dest-breakdown .row-label { text-align: left; font-family: 'Noto Sans JP', sans-serif; color: var(--text); }
-
-  /* Modal */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 200;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .modal {
-    background: var(--surface);
-    border-radius: 16px 16px 0 0;
-    padding: 20px 14px;
-    width: 100%;
-    max-width: 480px;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-  .modal h2 { font-size: 15px; margin-bottom: 12px; }
-  .modal pre {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    background: var(--bg);
-    padding: 10px;
-    border-radius: 8px;
-    overflow-x: auto;
-    white-space: pre;
-    margin-bottom: 12px;
-    line-height: 1.4;
-  }
-  .modal-actions { display: flex; gap: 6px; }
-  .modal-actions button {
-    flex: 1;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 11px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    touch-action: manipulation;
-  }
-  .modal-actions .cancel { background: var(--surface2); color: var(--text2); }
-  .modal-actions .copy { background: var(--accent2); color: #fff; }
-
-  @keyframes flash { 0%{opacity:1} 50%{opacity:0.6} 100%{opacity:1} }
-  .flash { animation: flash 0.15s ease; }
-
-  /* View toggle */
-  .view-toggle {
-    display: flex;
-    gap: 0;
-    background: var(--surface);
-    border-radius: 8px;
-    padding: 2px;
-    margin: 12px 12px 0;
-  }
-  .view-toggle button {
-    flex: 1;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text2);
-    cursor: pointer;
-    touch-action: manipulation;
-  }
-  .view-toggle button.active { background: var(--surface2); color: var(--text); }
 </style>
 </head>
 <body>
 
-<div id="app"></div>
+<div class="header">
+  <h1>📋 証拠物カウンター</h1>
+  <div style="text-align:right">
+    <div class="total" id="totalCount">0</div>
+    <div class="sub" id="totalSub">全月合計</div>
+  </div>
+</div>
+<div class="month-bar" id="monthBar"></div>
+<div class="tabs">
+  <div class="tab active" id="tabInput" onclick="switchTab('input')">📝 入力</div>
+  <div class="tab" id="tabSummary" onclick="switchTab('summary')">📊 集計</div>
+</div>
+
+<div id="inputView"><div class="input-area">
+  <div class="section-label">📮 提出先（タップで選択）</div>
+  <div class="dest-grid" id="destGrid"></div>
+  <div class="section-label">🏷️ フラグ</div>
+  <div class="flag-row" id="flagRow"></div>
+  <button class="register-btn disabled" id="registerBtn" onclick="registerDoc()">提出先を選択してください</button>
+  <div class="recent" id="recentArea"></div>
+</div></div>
+
+<div id="summaryView" style="display:none"><div class="summary" id="summaryContent"></div></div>
+<div class="toast" id="toast"></div>
 
 <script>
 const DESTS = [
-  { key: 'hokenjo',      label: '保健所',          short: '保健所' },
-  { key: 'kouseikyoku',  label: '厚生局',          short: '厚生局' },
-  { key: 'shinkokyoku',  label: '自立支援(振興局)', short: '振興局' },
-  { key: 'jiritsu_hoken',label: '自立支援(保健所)', short: '自立保' },
-  { key: 'roudoukyoku',  label: '労働局',          short: '労働局' },
+  { id:'hokenjo', name:'保健所', short:'保健所', color:'#3b82f6' },
+  { id:'kousekyoku', name:'厚生局', short:'厚生局', color:'#10b981' },
+  { id:'shinkoukyoku', name:'振興局', short:'振興局', color:'#8b5cf6' },
+  { id:'jiritsu_hoken', name:'自立支援(保健所)', short:'自立保', color:'#06b6d4' },
+  { id:'roudoukyoku', name:'労働局', short:'労働局', color:'#f59e0b' },
+  { id:'other', name:'その他', short:'他', color:'#6b7280' },
 ];
 
-const CATS = [
-  { key: 'new',       label: '新規配属',       sub: '入', cat: 'new' },
-  { key: 'move_out',  label: '異動（出）',     sub: '',   cat: 'out' },
-  { key: 'move_in',   label: '異動（入）',     sub: '',   cat: 'in' },
-  { key: 'quit',      label: '退職（出）',     sub: '',   cat: 'quit' },
-  { key: 'leave',     label: '産休育休（出）',  sub: '',   cat: 'leave' },
-  { key: 'return',    label: '育休復帰（入）',  sub: '',   cat: 'return' },
-  { key: 'other_out', label: 'その他（出）',   sub: '',   cat: 'other_out' },
-  { key: 'other_in',  label: 'その他（入）',   sub: '',   cat: 'other_in' },
+const FLAGS = [
+  { id:'kanyaku', name:'管薬変更', icon:'👤', color:'#f59e0b' },
+  { id:'hijokin', name:'非常勤', icon:'🕐', color:'#8b5cf6' },
+  { id:'shinki', name:'新規開設', icon:'🏪', color:'#10b981' },
 ];
 
-// Generate months 2023/04 - 2026/03
+// 加重工数（h/件）
+const HRS = {
+  base:     { lo:2,  mid:3,  hi:4 },   // 非常勤・厚生局単体
+  standard: { lo:6,  mid:8,  hi:10 },   // 通常(保健所+厚生局)
+  kanyaku:  { lo:10, mid:14, hi:18 },   // 管薬変更
+};
+
+// Months
 const MONTHS = [];
-for (let y = 2023; y <= 2025; y++) {
-  for (let m = 4; m <= 12; m++) MONTHS.push(`${y}/${String(m).padStart(2,'0')}`);
-  for (let m = 1; m <= 3; m++) MONTHS.push(`${y+1}/${String(m).padStart(2,'0')}`);
-}
-const uniqueMonths = [...new Set(MONTHS)];
+for(let y=2023;y<=2026;y++){const sm=y===2023?4:1,em=y===2026?4:12;for(let m=sm;m<=em;m++)MONTHS.push({code:`${y}${String(m).padStart(2,'0')}`,y,m});}
+function getFY(c){const y=+c.slice(0,4),m=+c.slice(4);return m>=4?y:y-1;}
 
 // State
-let data = {};       // data[month][dest][cat] = count
-let notes = {};      // notes[month] = string
-let selMonth = '2023/04';
-let selDest = 'hokenjo';
-let viewMode = 'input'; // 'input' | 'summary'
-let showExport = false;
+let data={}, curMonth=null, selDest=null, flags={};
+const SK='evidence_counter_v3';
+function save(){localStorage.setItem(SK,JSON.stringify(data));}
+function load(){try{const r=localStorage.getItem(SK);if(r)data=JSON.parse(r);}catch(e){}}
 
-function init(m) {
-  if (!data[m]) {
-    data[m] = {};
-    DESTS.forEach(d => {
-      data[m][d.key] = {};
-      CATS.forEach(c => data[m][d.key][c.key] = 0);
+// Month bar
+function renderMonths(){
+  const b=document.getElementById('monthBar');let h='',pf=null;
+  MONTHS.forEach(mo=>{
+    const fy=getFY(mo.code);
+    if(fy!==pf){const c={2023:'#3b82f6',2024:'#10b981',2025:'#f59e0b'};h+=`<div class="fy-sep" style="color:${c[fy]||'#888'}">${fy}年度</div>`;pf=fy;}
+    const n=(data[mo.code]||[]).length;
+    h+=`<div class="mo-btn ${curMonth===mo.code?'active':''}" onclick="selMonth('${mo.code}')">${mo.m}月<span class="cnt ${n?'':'zero'}">${n}</span></div>`;
+  });
+  b.innerHTML=h;
+  setTimeout(()=>{const a=b.querySelector('.active');if(a)a.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});},50);
+}
+
+function renderDests(){
+  document.getElementById('destGrid').innerHTML=DESTS.map(d=>`
+    <div class="dest-btn ${selDest===d.id?'selected':''}" onclick="pickDest('${d.id}')" style="${selDest===d.id?`border-color:${d.color}`:''}">
+      <div class="name" style="${selDest===d.id?`color:${d.color}`:''}">${d.name}</div>
+    </div>`).join('');
+}
+
+function renderFlags(){
+  document.getElementById('flagRow').innerHTML=FLAGS.map(f=>`
+    <div class="flag-btn ${flags[f.id]?'on':''}" onclick="togFlag('${f.id}')" style="${flags[f.id]?`border-color:${f.color};background:${f.color}15`:''}">
+      <div class="icon">${f.icon}</div>
+      <div class="label" style="${flags[f.id]?`color:${f.color}`:''}">${f.name}</div>
+    </div>`).join('');
+}
+
+function renderBtn(){
+  const b=document.getElementById('registerBtn');
+  if(!selDest){b.className='register-btn disabled';b.innerHTML='提出先を選択してください';return;}
+  const d=DESTS.find(x=>x.id===selDest);
+  const fl=FLAGS.filter(f=>flags[f.id]).map(f=>f.icon+f.name);
+  b.className='register-btn ready';
+  b.innerHTML=`✅ 登録：${d.name}${fl.length?' ＋ '+fl.join(' '):''}`;
+}
+
+function renderRecent(){
+  const a=document.getElementById('recentArea'),docs=data[curMonth]||[];
+  if(!docs.length){a.innerHTML='';return;}
+  const recent=docs.slice(-10).reverse();
+  let h=`<div class="recent-title"><span>最近の登録（${docs.length}件）</span></div>`;
+  recent.forEach((doc,i)=>{
+    const idx=docs.length-i,d=DESTS.find(x=>x.id===doc.dest);
+    const ft=(doc.flags||[]).map(fid=>{const f=FLAGS.find(x=>x.id===fid);return f?`<span class="flag-tag" style="background:${f.color}20;color:${f.color}">${f.icon}${f.name}</span>`:''}).join('');
+    h+=`<div class="log-item"><span class="num">${String(idx).padStart(3,'0')}</span><span class="dest-tag" style="background:${d.color}20;color:${d.color}">${d.name}</span>${ft}<button class="undo-btn" onclick="undo(${docs.length-1-i})">取消</button></div>`;
+  });
+  a.innerHTML=h;
+}
+
+function updateTotal(){
+  const md=data[curMonth]||[],all=Object.values(data).reduce((a,d)=>a+d.length,0);
+  document.getElementById('totalCount').textContent=all;
+  document.getElementById('totalSub').textContent=curMonth?`この月: ${md.length}件 / 全体: ${all}件`:'全月合計';
+}
+
+// Actions
+function selMonth(c){curMonth=c;selDest=null;flags={};renderMonths();renderDests();renderFlags();renderBtn();renderRecent();updateTotal();}
+function pickDest(id){selDest=selDest===id?null:id;renderDests();renderBtn();if(navigator.vibrate)navigator.vibrate(20);}
+function togFlag(id){flags[id]=!flags[id];renderFlags();renderBtn();if(navigator.vibrate)navigator.vibrate(20);}
+
+function registerDoc(){
+  if(!selDest||!curMonth)return;
+  if(!data[curMonth])data[curMonth]=[];
+  data[curMonth].push({dest:selDest,flags:FLAGS.filter(f=>flags[f.id]).map(f=>f.id),ts:new Date().toISOString()});
+  save();
+  const d=DESTS.find(x=>x.id===selDest);
+  toast(`✅ #${data[curMonth].length} ${d.name} 登録`);
+  if(navigator.vibrate)navigator.vibrate([30,50,30]);
+  selDest=null;flags={};renderDests();renderFlags();renderBtn();renderRecent();renderMonths();updateTotal();
+}
+
+function undo(i){
+  if(!curMonth||!data[curMonth])return;
+  const doc=data[curMonth][i];if(!doc)return;
+  const d=DESTS.find(x=>x.id===doc.dest);
+  data[curMonth].splice(i,1);if(!data[curMonth].length)delete data[curMonth];
+  save();toast(`↩ ${d.name} 取消`,'undo');renderRecent();renderMonths();updateTotal();
+}
+
+function switchTab(t){
+  document.getElementById('tabInput').className='tab'+(t==='input'?' active':'');
+  document.getElementById('tabSummary').className='tab'+(t==='summary'?' active':'');
+  document.getElementById('inputView').style.display=t==='input'?'':'none';
+  document.getElementById('summaryView').style.display=t==='summary'?'':'none';
+  if(t==='summary')renderSummary();
+}
+
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',1500);}
+
+// Summary
+function renderSummary(){
+  const c=document.getElementById('summaryContent');
+  const allDocs=[];Object.entries(data).forEach(([m,docs])=>docs.forEach(d=>allDocs.push({...d,month:m})));
+  const mc=Object.keys(data).filter(k=>data[k].length>0).length;
+  const tot=allDocs.length;
+
+  const dc={},fc={};
+  DESTS.forEach(d=>dc[d.id]=0);FLAGS.forEach(f=>fc[f.id]=0);
+  allDocs.forEach(d=>{dc[d.dest]++;(d.flags||[]).forEach(f=>fc[f]=(fc[f]||0)+1);});
+
+  const md={};
+  MONTHS.forEach(mo=>{
+    const docs=data[mo.code]||[],row={total:docs.length,d:{},f:{}};
+    DESTS.forEach(d=>row.d[d.id]=0);FLAGS.forEach(f=>row.f[f.id]=0);
+    docs.forEach(d=>{row.d[d.dest]++;(d.flags||[]).forEach(f=>row.f[f]=(row.f[f]||0)+1);});
+    md[mo.code]=row;
+  });
+
+  function estHrs(docs){
+    let h={lo:0,mid:0,hi:0};
+    docs.forEach(d=>{
+      const fls=d.flags||[];
+      let t;
+      if(fls.includes('kanyaku'))t=HRS.kanyaku;
+      else if(d.dest==='kousekyoku'&&fls.includes('hijokin'))t=HRS.base;
+      else t=HRS.standard;
+      h.lo+=t.lo;h.mid+=t.mid;h.hi+=t.hi;
+    });return h;
+  }
+
+  const th=estHrs(allDocs);
+  const ah=mc>0?{lo:(th.lo/mc).toFixed(0),mid:(th.mid/mc).toFixed(0),hi:(th.hi/mc).toFixed(0)}:{lo:0,mid:0,hi:0};
+
+  let html=`<div class="summary-card"><h3>📊 全体サマリー</h3>
+    <div class="summary-grid">
+      <div class="s-cell"><div class="lbl">総書類数</div><div class="val" style="color:var(--accent)">${tot}</div></div>
+      <div class="s-cell"><div class="lbl">登録月数</div><div class="val">${mc}</div></div>
+      <div class="s-cell"><div class="lbl">月平均</div><div class="val">${mc?(tot/mc).toFixed(1):'-'}</div></div>
+      <div class="s-cell"><div class="lbl">管薬変更</div><div class="val" style="color:var(--orange)">${fc.kanyaku||0}</div></div>
+      <div class="s-cell"><div class="lbl">非常勤</div><div class="val" style="color:var(--purple)">${fc.hijokin||0}</div></div>
+      <div class="s-cell"><div class="lbl">新規開設</div><div class="val" style="color:var(--green)">${fc.shinki||0}</div></div>
+    </div></div>`;
+
+  html+=`<div class="summary-card"><h3>📮 提出先別</h3>
+    <div class="summary-grid">${DESTS.map(d=>`<div class="s-cell"><div class="lbl">${d.short}</div><div class="val" style="color:${d.color}">${dc[d.id]}</div></div>`).join('')}</div></div>`;
+
+  html+=`<div class="summary-card"><h3>⏱️ 推定残業工数（加重平均）</h3>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">非常勤(厚生局のみ): ${HRS.base.mid}h ／ 通常: ${HRS.standard.mid}h ／ 管薬変更: ${HRS.kanyaku.mid}h</div>
+    <div class="hours-row">
+      <div class="h-cell"><div class="lbl">保守的</div><div class="val" style="color:var(--green)">${ah.lo}h</div><div class="lbl">月平均</div></div>
+      <div class="h-cell"><div class="lbl">中間</div><div class="val" style="color:var(--accent)">${ah.mid}h</div><div class="lbl">月平均</div></div>
+      <div class="h-cell"><div class="lbl">積極的</div><div class="val" style="color:var(--orange)">${ah.hi}h</div><div class="lbl">月平均</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text2);margin-top:8px;text-align:center">総計: ${th.lo}h 〜 ${th.mid}h 〜 ${th.hi}h</div></div>`;
+
+  [2023,2024,2025].forEach(fy=>{
+    const fm=MONTHS.filter(m=>getFY(m.code)===fy);
+    const ft=fm.reduce((a,m)=>(md[m.code]?.total||0)+a,0);
+    html+=`<div class="summary-card"><h3>${fy}年度 <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent)">(${ft}件)</span></h3>
+    <div style="overflow-x:auto"><table class="matrix"><tr><th style="text-align:left">月</th><th>計</th>${DESTS.slice(0,5).map(d=>`<th>${d.short}</th>`).join('')}<th>管薬</th><th>非常勤</th></tr>
+    ${fm.map(mo=>{const r=md[mo.code],t=r.total;return `<tr style="opacity:${t?1:0.4}"><td class="lc" style="cursor:pointer" onclick="selMonth('${mo.code}');switchTab('input')">${mo.m}月</td><td class="${t>=20?'warn':t?'hi':''}">${t||'-'}</td>${DESTS.slice(0,5).map(d=>`<td>${r.d[d.id]||'-'}</td>`).join('')}<td style="color:var(--orange)">${r.f.kanyaku||'-'}</td><td style="color:var(--purple)">${r.f.hijokin||'-'}</td></tr>`;}).join('')}
+    <tr style="font-weight:700;border-top:2px solid var(--border)"><td class="lc">合計</td><td class="hi">${ft}</td>${DESTS.slice(0,5).map(d=>{const s=fm.reduce((a,m)=>(md[m.code]?.d[d.id]||0)+a,0);return`<td>${s||'-'}</td>`;}).join('')}<td style="color:var(--orange)">${fm.reduce((a,m)=>(md[m.code]?.f.kanyaku||0)+a,0)||'-'}</td><td style="color:var(--purple)">${fm.reduce((a,m)=>(md[m.code]?.f.hijokin||0)+a,0)||'-'}</td></tr>
+    </table></div></div>`;
+  });
+
+  html+=`<div class="export-bar">
+    <button class="export-btn" onclick="exportCSV()">📥 CSV出力</button>
+    <button class="export-btn" onclick="exportJSON()">💾 JSON保存</button>
+    <button class="export-btn" onclick="importJSON()">📂 JSON読込</button>
+  </div>`;
+
+  html+=`<div class="danger-zone"><h3>⚠ データ管理</h3><div style="display:flex;gap:8px">
+    <button class="danger-btn" onclick="resetMo()">この月リセット</button>
+    <button class="danger-btn" onclick="resetAll()">全データリセット</button>
+  </div></div>`;
+
+  c.innerHTML=html;
+}
+
+// Export
+function exportCSV(){
+  let csv='month,seq,dest_id,dest_name,kanyaku,hijokin,shinki,timestamp\n';
+  Object.keys(data).sort().forEach(m=>{
+    (data[m]||[]).forEach((d,i)=>{
+      const dest=DESTS.find(x=>x.id===d.dest),fl=d.flags||[];
+      csv+=`${m},${i+1},${d.dest},${dest.name},${fl.includes('kanyaku')?1:0},${fl.includes('hijokin')?1:0},${fl.includes('shinki')?1:0},${d.ts}\n`;
     });
-  }
-  if (notes[m] === undefined) notes[m] = '';
-}
-uniqueMonths.forEach(init);
-
-// localStorage persistence
-const STORAGE_KEY = 'tally_counter_v2';
-
-function saveState() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, notes })); } catch(e) {}
-}
-
-function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const s = JSON.parse(saved);
-      if (s.data) {
-        Object.keys(s.data).forEach(m => {
-          if (data[m]) {
-            Object.keys(s.data[m]).forEach(d => {
-              if (data[m][d]) {
-                Object.keys(s.data[m][d]).forEach(c => {
-                  if (typeof s.data[m][d][c] === 'number') data[m][d][c] = s.data[m][d][c];
-                });
-              }
-            });
-          }
-        });
-      }
-      if (s.notes) Object.keys(s.notes).forEach(m => { if (notes[m] !== undefined) notes[m] = s.notes[m]; });
-    }
-  } catch(e) {}
-}
-
-loadState();
-
-function monthDestTotal(m, d) {
-  return CATS.reduce((a, c) => a + (data[m][d][c.key] || 0), 0);
-}
-
-function monthTotal(m) {
-  return DESTS.reduce((a, d) => a + monthDestTotal(m, d.key), 0);
-}
-
-function allTotal() {
-  return uniqueMonths.reduce((a, m) => a + monthTotal(m), 0);
-}
-
-function monthCatTotal(m, catKey) {
-  return DESTS.reduce((a, d) => a + (data[m][d.key][catKey] || 0), 0);
-}
-
-function vibrate() { if (navigator.vibrate) navigator.vibrate(10); }
-
-function render() {
-  const app = document.getElementById('app');
-  const mTotal = monthTotal(selMonth);
-  const aTotal = allTotal();
-  const filled = uniqueMonths.filter(m => monthTotal(m) > 0).length;
-
-  let html = `
-    <div class="header">
-      <div class="header-top">
-        <h1>📋 控え集計カウンター</h1>
-        <div class="header-actions">
-          <button class="btn-sm" onclick="resetMonth()">月リセット</button>
-          <button class="btn-sm" onclick="resetAll()">全リセット</button>
-          <button class="btn-sm primary" onclick="showExport=true;render()">CSV出力</button>
-        </div>
-      </div>
-      <div class="month-scroll" id="monthScroll">
-        ${uniqueMonths.map(m => {
-          const t = monthTotal(m);
-          const [y, mo] = m.split('/');
-          return `<div class="month-chip ${m===selMonth?'active':''}" onclick="selMonth='${m}';render();scrollMonth()">
-            ${y.slice(2)}/${mo}
-            ${t > 0 ? `<div class="badge">${t}</div>` : ''}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-
-    <div class="view-toggle">
-      <button class="${viewMode==='input'?'active':''}" onclick="viewMode='input';render()">入力</button>
-      <button class="${viewMode==='summary'?'active':''}" onclick="viewMode='summary';render()">当月サマリー</button>
-    </div>
-
-    <div class="dest-tabs">
-      ${DESTS.map(d => {
-        const dt = monthDestTotal(selMonth, d.key);
-        return `<button class="dest-tab ${d.key===selDest?'active':''}" data-dest="${d.key}"
-                  onclick="selDest='${d.key}';render()">
-          ${d.short}
-          <span class="dest-count">${dt}</span>
-        </button>`;
-      }).join('')}
-    </div>
-  `;
-
-  if (viewMode === 'input') {
-    html += `<div class="content">
-      <div class="month-header">
-        <div class="month-title">${selMonth}</div>
-        <div class="month-total">書類計: <span>${mTotal}</span></div>
-      </div>
-
-      <div class="dest-label">▶ ${DESTS.find(d=>d.key===selDest).label}</div>
-
-      ${CATS.map(c => {
-        const val = data[selMonth][selDest][c.key];
-        return `<div class="tally-row" data-cat="${c.cat}" id="row-${c.key}">
-          <div class="tally-label">${c.label}</div>
-          <button class="tally-btn minus" onclick="dec('${c.key}')">−</button>
-          <div class="tally-count">${val}</div>
-          <button class="tally-btn plus" onclick="inc('${c.key}')">＋</button>
-        </div>`;
-      }).join('')}
-
-      <textarea class="notes-input" rows="2" placeholder="備考"
-        oninput="notes[selMonth]=this.value;saveState()">${notes[selMonth]||''}</textarea>
-
-      <div class="summary">
-        <h2>📊 当月 推定工数（イベントベース）</h2>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="label">保守的(8h)</div>
-            <div class="value" style="color:var(--green)">${getEventCount(selMonth) * 8}h</div>
-          </div>
-          <div class="summary-card">
-            <div class="label">中間(10h)</div>
-            <div class="value" style="color:var(--accent)">${getEventCount(selMonth) * 10}h</div>
-          </div>
-          <div class="summary-card">
-            <div class="label">積極的(12h)</div>
-            <div class="value" style="color:var(--orange)">${getEventCount(selMonth) * 12}h</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="summary" style="margin-top:10px">
-        <h2>📈 全期間</h2>
-        <div class="estimate-row">
-          <span class="est-label">入力済み月数</span>
-          <span class="est-value">${filled} / ${uniqueMonths.length}</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">総書類数</span>
-          <span class="est-value">${aTotal}件</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">総イベント数</span>
-          <span class="est-value">${getTotalEvents()}T</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">月平均残業（中間）</span>
-          <span class="est-value" style="color:var(--accent)">${filled>0?((getTotalEvents()/filled)*10).toFixed(0):'0'}h</span>
-        </div>
-      </div>
-    </div>`;
-  } else {
-    // Summary view
-    html += `<div class="content">
-      <div class="month-header">
-        <div class="month-title">${selMonth}</div>
-        <div class="month-total">書類計: <span>${mTotal}</span></div>
-      </div>
-
-      <div class="summary">
-        <h2>提出先 × 種別 マトリクス</h2>
-        <div style="overflow-x:auto">
-          <table class="dest-breakdown">
-            <thead>
-              <tr>
-                <th></th>
-                ${DESTS.map(d => `<th>${d.short}</th>`).join('')}
-                <th>計</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${CATS.map(c => {
-                const rowTotal = monthCatTotal(selMonth, c.key);
-                return `<tr>
-                  <td class="row-label">${c.label}</td>
-                  ${DESTS.map(d => {
-                    const v = data[selMonth][d.key][c.key];
-                    return `<td style="${v>0?'color:var(--accent)':''}">${v||'-'}</td>`;
-                  }).join('')}
-                  <td style="font-weight:700;color:var(--accent)">${rowTotal||'-'}</td>
-                </tr>`;
-              }).join('')}
-              <tr style="border-top:2px solid var(--border)">
-                <td class="row-label" style="font-weight:700">計</td>
-                ${DESTS.map(d => {
-                  const v = monthDestTotal(selMonth, d.key);
-                  return `<td style="font-weight:700">${v||'-'}</td>`;
-                }).join('')}
-                <td style="font-weight:700;color:var(--orange)">${mTotal}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="summary" style="margin-top:10px">
-        <h2>📊 推定工数</h2>
-        <div class="estimate-row">
-          <span class="est-label">書類数（実カウント）</span>
-          <span class="est-value">${mTotal}件</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">イベント数（保健所T基準）</span>
-          <span class="est-value">${getEventCount(selMonth)}T</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">推定残業（保守的 8h）</span>
-          <span class="est-value" style="color:var(--green)">${getEventCount(selMonth)*8}h</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">推定残業（中間 10h）</span>
-          <span class="est-value" style="color:var(--accent)">${getEventCount(selMonth)*10}h</span>
-        </div>
-        <div class="estimate-row">
-          <span class="est-label">推定残業（積極的 12h）</span>
-          <span class="est-value" style="color:var(--orange)">${getEventCount(selMonth)*12}h</span>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  if (showExport) {
-    const csv = generateCSV();
-    html += `
-      <div class="modal-overlay" onclick="if(event.target===this){showExport=false;render()}">
-        <div class="modal">
-          <h2>CSV出力</h2>
-          <div style="margin-bottom:8px">
-            <button class="btn-sm ${exportMode==='docs'?'primary':''}" onclick="exportMode='docs';render()" style="margin-right:4px">書類ベース</button>
-            <button class="btn-sm ${exportMode==='events'?'primary':''}" onclick="exportMode='events';render()">イベントベース</button>
-          </div>
-          <pre id="csvPre">${esc(exportMode==='docs'?generateCSV():generateEventCSV())}</pre>
-          <div class="modal-actions">
-            <button class="cancel" onclick="showExport=false;render()">閉じる</button>
-            <button class="copy" onclick="copyCSV()">コピー</button>
-            <button class="copy" onclick="dlCSV()" style="background:var(--green);color:#000">DL</button>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  app.innerHTML = html;
-  requestAnimationFrame(scrollMonth);
-}
-
-function scrollMonth() {
-  const el = document.querySelector('.month-chip.active');
-  if (el) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-}
-
-function inc(catKey) {
-  data[selMonth][selDest][catKey]++;
-  saveState();
-  vibrate();
-  render();
-  const row = document.getElementById('row-' + catKey);
-  if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
-}
-
-function dec(catKey) {
-  if (data[selMonth][selDest][catKey] > 0) {
-    data[selMonth][selDest][catKey]--;
-    saveState();
-    vibrate();
-    render();
-  }
-}
-
-function resetMonth() {
-  if (confirm(`${selMonth} の全データをリセットしますか？`)) {
-    DESTS.forEach(d => CATS.forEach(c => data[selMonth][d.key][c.key] = 0));
-    notes[selMonth] = '';
-    saveState();
-    render();
-  }
-}
-
-function resetAll() {
-  if (confirm('全期間のデータを削除しますか？\n（この操作は取り消せません）')) {
-    if (confirm('本当に全データを削除しますか？')) {
-      uniqueMonths.forEach(m => {
-        DESTS.forEach(d => CATS.forEach(c => data[m][d.key][c.key] = 0));
-        notes[m] = '';
-      });
-      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-      render();
-    }
-  }
-}
-
-// Event count = transactions based on hokenjo (primary filing destination)
-function getEventCount(m) {
-  return monthDestTotal(m, 'hokenjo');
-}
-
-function getTotalEvents() {
-  return uniqueMonths.reduce((a, m) => a + getEventCount(m), 0);
-}
-
-let exportMode = 'docs';
-
-function generateCSV() {
-  const destKeys = DESTS.map(d => d.key);
-  const catKeys = CATS.map(c => c.key);
-
-  // Header: month, then for each dest, each cat, then dest subtotal, then grand total
-  let header = '年月';
-  DESTS.forEach(d => {
-    CATS.forEach(c => header += `,${d.label}_${c.label}`);
-    header += `,${d.label}_計`;
   });
-  header += ',総書類数,備考';
-
-  const rows = uniqueMonths.map(m => {
-    let row = m;
-    let grand = 0;
-    DESTS.forEach(d => {
-      let sub = 0;
-      CATS.forEach(c => {
-        const v = data[m][d.key][c.key];
-        row += `,${v}`;
-        sub += v;
-      });
-      row += `,${sub}`;
-      grand += sub;
-    });
-    const n = (notes[m]||'').replace(/,/g,'，').replace(/\n/g,' ');
-    row += `,${grand},${n}`;
-    return row;
+  csv+='\n月別集計\nmonth,total,保健所,厚生局,振興局,自立保,労働局,その他,管薬変更,非常勤,新規開設\n';
+  MONTHS.forEach(mo=>{
+    const docs=data[mo.code]||[];if(!docs.length)return;
+    const dc={},fc={kanyaku:0,hijokin:0,shinki:0};DESTS.forEach(d=>dc[d.id]=0);
+    docs.forEach(d=>{dc[d.dest]++;(d.flags||[]).forEach(f=>fc[f]=(fc[f]||0)+1);});
+    csv+=`${mo.code},${docs.length},${DESTS.map(d=>dc[d.id]).join(',')},${fc.kanyaku},${fc.hijokin},${fc.shinki}\n`;
   });
-
-  return header + '\n' + rows.join('\n');
+  dl(csv,`evidence_count_${new Date().toISOString().slice(0,10)}.csv`,'text/csv');
 }
 
-function generateEventCSV() {
-  let header = '年月';
-  CATS.forEach(c => header += `,${c.label}`);
-  header += ',イベント計,推定工数8h,推定工数10h,推定工数12h,書類総数,備考';
+function exportJSON(){dl(JSON.stringify(data,null,2),`evidence_data_${new Date().toISOString().slice(0,10)}.json`,'application/json');}
 
-  const rows = uniqueMonths.map(m => {
-    let row = m;
-    CATS.forEach(c => row += `,${monthCatTotal(m, c.key)}`);
-    const ev = getEventCount(m);
-    const docs = monthTotal(m);
-    const n = (notes[m]||'').replace(/,/g,'，').replace(/\n/g,' ');
-    row += `,${ev},${ev*8},${ev*10},${ev*12},${docs},${n}`;
-    return row;
-  });
-
-  // Totals
-  const filled = uniqueMonths.filter(m => monthTotal(m) > 0).length;
-  let totalRow = '総合計';
-  CATS.forEach(c => totalRow += `,${uniqueMonths.reduce((a,m)=>a+monthCatTotal(m,c.key),0)}`);
-  const te = getTotalEvents();
-  totalRow += `,${te},${te*8},${te*10},${te*12},${allTotal()},`;
-  rows.push(totalRow);
-
-  if (filled > 0) {
-    let avgRow = '月平均';
-    CATS.forEach(c => avgRow += `,${(uniqueMonths.reduce((a,m)=>a+monthCatTotal(m,c.key),0)/filled).toFixed(1)}`);
-    const ae = (te/filled);
-    avgRow += `,${ae.toFixed(1)},${(ae*8).toFixed(0)},${(ae*10).toFixed(0)},${(ae*12).toFixed(0)},${(allTotal()/filled).toFixed(1)},`;
-    rows.push(avgRow);
-  }
-
-  return header + '\n' + rows.join('\n');
+function importJSON(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const t=await f.text(),d=JSON.parse(t);if(confirm(`${Object.values(d).flat().length}件を読み込みます。上書きしますか？`)){data=d;save();renderAll();toast('✅ 読込完了');}}catch(e){alert('読込失敗: '+e.message);}};
+  inp.click();
 }
 
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-function copyCSV() {
-  const csv = exportMode==='docs' ? generateCSV() : generateEventCSV();
-  navigator.clipboard.writeText(csv).then(() => {
-    const btn = document.querySelector('.modal-actions .copy');
-    if (btn) { btn.textContent='✓ コピー済み'; setTimeout(()=>{btn.textContent='コピー'},1500); }
-  });
+function dl(content,name,mime){
+  const b=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),content],{type:mime+';charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();
 }
 
-function dlCSV() {
-  const csv = exportMode==='docs' ? generateCSV() : generateEventCSV();
-  const name = exportMode==='docs' ? 'transaction_docs.csv' : 'transaction_events.csv';
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
+function resetMo(){
+  if(!curMonth)return;const n=(data[curMonth]||[]).length;if(!n)return;
+  if(!confirm(`${curMonth} の ${n}件を削除しますか？`))return;
+  delete data[curMonth];save();renderAll();toast('🗑 削除しました','undo');
+}
+function resetAll(){
+  const n=Object.values(data).flat().length;if(!n)return;
+  if(!confirm(`全 ${n}件を削除しますか？`))return;
+  if(!confirm('本当に全データを削除しますか？'))return;
+  data={};save();renderAll();toast('🗑 全削除しました','undo');
 }
 
-render();
+function renderAll(){renderMonths();renderDests();renderFlags();renderBtn();renderRecent();updateTotal();}
+
+load();
+const now=new Date(),dm=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+curMonth=MONTHS.find(m=>m.code===dm)?dm:'202304';
+renderAll();
 </script>
 </body>
 </html>
