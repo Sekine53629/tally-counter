@@ -425,6 +425,38 @@ function init(m) {
 }
 uniqueMonths.forEach(init);
 
+// localStorage persistence
+const STORAGE_KEY = 'tally_counter_v2';
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, notes })); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const s = JSON.parse(saved);
+      if (s.data) {
+        Object.keys(s.data).forEach(m => {
+          if (data[m]) {
+            Object.keys(s.data[m]).forEach(d => {
+              if (data[m][d]) {
+                Object.keys(s.data[m][d]).forEach(c => {
+                  if (typeof s.data[m][d][c] === 'number') data[m][d][c] = s.data[m][d][c];
+                });
+              }
+            });
+          }
+        });
+      }
+      if (s.notes) Object.keys(s.notes).forEach(m => { if (notes[m] !== undefined) notes[m] = s.notes[m]; });
+    }
+  } catch(e) {}
+}
+
+loadState();
+
 function monthDestTotal(m, d) {
   return CATS.reduce((a, c) => a + (data[m][d][c.key] || 0), 0);
 }
@@ -454,7 +486,8 @@ function render() {
       <div class="header-top">
         <h1>📋 控え集計カウンター</h1>
         <div class="header-actions">
-          <button class="btn-sm" onclick="resetMonth()">リセット</button>
+          <button class="btn-sm" onclick="resetMonth()">月リセット</button>
+          <button class="btn-sm" onclick="resetAll()">全リセット</button>
           <button class="btn-sm primary" onclick="showExport=true;render()">CSV出力</button>
         </div>
       </div>
@@ -507,7 +540,7 @@ function render() {
       }).join('')}
 
       <textarea class="notes-input" rows="2" placeholder="備考"
-        oninput="notes[selMonth]=this.value">${notes[selMonth]||''}</textarea>
+        oninput="notes[selMonth]=this.value;saveState()">${notes[selMonth]||''}</textarea>
 
       <div class="summary">
         <h2>📊 当月 推定工数（イベントベース）</h2>
@@ -648,6 +681,7 @@ function scrollMonth() {
 
 function inc(catKey) {
   data[selMonth][selDest][catKey]++;
+  saveState();
   vibrate();
   render();
   const row = document.getElementById('row-' + catKey);
@@ -657,6 +691,7 @@ function inc(catKey) {
 function dec(catKey) {
   if (data[selMonth][selDest][catKey] > 0) {
     data[selMonth][selDest][catKey]--;
+    saveState();
     vibrate();
     render();
   }
@@ -666,7 +701,21 @@ function resetMonth() {
   if (confirm(`${selMonth} の全データをリセットしますか？`)) {
     DESTS.forEach(d => CATS.forEach(c => data[selMonth][d.key][c.key] = 0));
     notes[selMonth] = '';
+    saveState();
     render();
+  }
+}
+
+function resetAll() {
+  if (confirm('全期間のデータを削除しますか？\n（この操作は取り消せません）')) {
+    if (confirm('本当に全データを削除しますか？')) {
+      uniqueMonths.forEach(m => {
+        DESTS.forEach(d => CATS.forEach(c => data[m][d.key][c.key] = 0));
+        notes[m] = '';
+      });
+      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+      render();
+    }
   }
 }
 
